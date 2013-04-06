@@ -15,12 +15,12 @@ public class Skeleton {
 		FakeTweetsBatchSpout spout = new FakeTweetsBatchSpout();
 
 		TridentTopology topology = new TridentTopology();
-		topology.newStream("spout", spout)
-			.each(new Fields("id", "text", "actor", "location", "date") , new Utils.PrintFilter());
-		
+		topology.newStream("spout", spout).each(new Fields("id", "text", "actor", "location", "date"),
+		    new Utils.PrintFilter());
+
 		return topology.build();
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		Config conf = new Config();
 

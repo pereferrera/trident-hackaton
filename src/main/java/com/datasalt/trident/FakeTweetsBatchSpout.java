@@ -16,8 +16,8 @@ import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 
 /**
- * A Spout that emits fake tweets. It calculates a random probability distribution for hashtags and actor activity.
- * It uses a dataset of 500 english sentences.
+ * A Spout that emits fake tweets. It calculates a random probability distribution for hashtags and actor activity. It
+ * uses a dataset of 500 english sentences.
  */
 @SuppressWarnings({ "serial", "rawtypes" })
 public class FakeTweetsBatchSpout implements IBatchSpout {
@@ -29,14 +29,14 @@ public class FakeTweetsBatchSpout implements IBatchSpout {
 	public final static String[] LOCATIONS = { "Spain", "USA", "Spain", "USA", "USA", "USA", "UK",
 	    "France" };
 	public final static String[] SUBJECTS = { "berlin", "justinbieber", "hadoop", "life", "bigdata" };
-	
+
 	private double[] activityDistribution;
-	private double[][] subjectInterestDistribution;	
+	private double[][] subjectInterestDistribution;
 	private Random randomGenerator;
 	private String[] sentences;
-	
+
 	private long tweetId = 0;
-	
+
 	public FakeTweetsBatchSpout() throws IOException {
 		this(5);
 	}
@@ -44,7 +44,7 @@ public class FakeTweetsBatchSpout implements IBatchSpout {
 	public FakeTweetsBatchSpout(int batchSize) throws IOException {
 		this.batchSize = batchSize;
 	}
-	
+
 	@Override
 	public void open(Map conf, TopologyContext context) {
 		// init
@@ -52,10 +52,11 @@ public class FakeTweetsBatchSpout implements IBatchSpout {
 		this.randomGenerator = new Random();
 		// read a resource with 500 sample english sentences
 		try {
-	    sentences = Files.readFile(ClassLoader.getSystemClassLoader().getResourceAsStream("500_sentences_en.txt")).split("\n");
-    } catch(IOException e) {
-	    throw new RuntimeException(e);
-    } 
+			sentences = Files.readFile(
+			    ClassLoader.getSystemClassLoader().getResourceAsStream("500_sentences_en.txt")).split("\n");
+		} catch(IOException e) {
+			throw new RuntimeException(e);
+		}
 		// will define which actors are more proactive than the others
 		this.activityDistribution = getProbabilityDistribution(ACTORS.length, randomGenerator);
 		// will define what subjects each of the actors are most interested in
@@ -93,21 +94,23 @@ public class FakeTweetsBatchSpout implements IBatchSpout {
 	public Fields getOutputFields() {
 		return new Fields("id", "text", "actor", "location", "date");
 	}
-	
+
 	// --- Helper methods --- //
 	// SimpleDateFormat is not thread safe!
 	private SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss aa");
-	
+
 	private Values getNextTweet() {
 		int actorIndex = randomIndex(activityDistribution, randomGenerator);
 		String author = ACTORS[actorIndex];
-		String text = sentences[randomGenerator.nextInt(sentences.length)].trim() + " #" + SUBJECTS[randomIndex(subjectInterestDistribution[actorIndex], randomGenerator)];
-		return new Values(++tweetId + "", text, author, LOCATIONS[actorIndex], DATE_FORMAT.format(System.currentTimeMillis()));
+		String text = sentences[randomGenerator.nextInt(sentences.length)].trim() + " #"
+		    + SUBJECTS[randomIndex(subjectInterestDistribution[actorIndex], randomGenerator)];
+		return new Values(++tweetId + "", text, author, LOCATIONS[actorIndex], DATE_FORMAT.format(System
+		    .currentTimeMillis()));
 	}
-	
+
 	/**
-	 * Code snippet: http://stackoverflow.com/questions/2171074/generating-a-probability-distribution
-	 * Returns an array of size "n" with probabilities between 0 and 1 such that sum(array) = 1.
+	 * Code snippet: http://stackoverflow.com/questions/2171074/generating-a-probability-distribution Returns an array of
+	 * size "n" with probabilities between 0 and 1 such that sum(array) = 1.
 	 */
 	private static double[] getProbabilityDistribution(int n, Random randomGenerator) {
 		double a[] = new double[n];
@@ -122,15 +125,16 @@ public class FakeTweetsBatchSpout implements IBatchSpout {
 		}
 		return a;
 	}
-	
+
 	private static int randomIndex(double[] distribution, Random randomGenerator) {
 		double rnd = randomGenerator.nextDouble();
 		double accum = 0;
 		int index = 0;
-		for(; index < distribution.length && accum < rnd; index++, accum += distribution[index - 1]);
+		for(; index < distribution.length && accum < rnd; index++, accum += distribution[index - 1])
+			;
 		return index - 1;
 	}
-	
+
 	public static void main(String[] args) throws IOException, ParseException {
 		FakeTweetsBatchSpout spout = new FakeTweetsBatchSpout();
 		spout.open(null, null);

@@ -42,7 +42,7 @@ public class OutlierDetection {
 		@Override
 		public boolean isKeep(TridentTuple tuple) {
 			return tuple.getString(position).contains("bomb");
-//			return tuple.getString(position).length() < 10;
+			// return tuple.getString(position).length() < 10;
 		}
 	}
 
@@ -52,8 +52,7 @@ public class OutlierDetection {
 
 		topology.newStream("hackaton", spout)
 		    .each(new Fields("actor", "text", "date"), new OutlierFilter(1))
-		    .each(new Fields("actor", "text", "date"), new Utils.PrintFilter())
-		    .parallelismHint(5);
+		    .each(new Fields("actor", "text", "date"), new Utils.PrintFilter()).parallelismHint(5);
 
 		return topology.build();
 	}

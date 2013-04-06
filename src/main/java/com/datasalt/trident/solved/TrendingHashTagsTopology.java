@@ -23,8 +23,8 @@ import com.datasalt.trident.FakeTweetsBatchSpout;
 import com.datasalt.trident.Utils;
 
 /**
- * A complex example that combines 3 functions, partitioning and complex custom logic
- * for calculating the trending hashtags in a window of time.
+ * A complex example that combines 3 functions, partitioning and complex custom logic for calculating the trending
+ * hashtags in a window of time.
  */
 @SuppressWarnings({ "serial" })
 public class TrendingHashTagsTopology {
@@ -44,31 +44,36 @@ public class TrendingHashTagsTopology {
 	public static class ParseDate extends BaseFunction {
 
 		private SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss aa");
-		
+
 		@Override
 		public void execute(TridentTuple tuple, TridentCollector collector) {
 			try {
-				collector.emit(new Values(DATE_FORMAT.parse((String) tuple.get(1))
-				    .getTime()));
+				collector.emit(new Values(DATE_FORMAT.parse((String) tuple.get(1)).getTime()));
 			} catch(ParseException e) {
 				throw new RuntimeException(e);
 			}
 		}
 	}
 
+	/**
+	 * Keeps a list of timestamps for each key and expires them periodically. It emits the number of timestamps for each
+	 * key. This can be used for detecting trends.
+	 * 
+	 * This is not very memory-friendly and there are better, sophisticated ways of doing this.
+	 */
 	public static class RotatingTimeWindow extends BaseFunction {
 
 		private ConcurrentHashMap<String, CopyOnWriteArrayList<Long>> map = new ConcurrentHashMap<String, CopyOnWriteArrayList<Long>>();
 		private volatile TridentCollector collector = null;
 		private long timeWindow;
-	  // will be instantiated when first tuple is received
+		// will be instantiated when first tuple is received
 		// otherwise the thread is serialized and collector will always be null
-		private Thread reporter = null; 
+		private Thread reporter = null;
 
 		public RotatingTimeWindow(long timeWindow) { // in milliseconds
 			this.timeWindow = timeWindow;
 		}
-		
+
 		@Override
 		public void execute(TridentTuple tuple, TridentCollector collector) {
 			if(this.collector == null) {
@@ -78,7 +83,8 @@ public class TrendingHashTagsTopology {
 						try {
 							while(true) {
 								for(Map.Entry<String, CopyOnWriteArrayList<Long>> mapEntry : map.entrySet()) {
-									RotatingTimeWindow.this.collector.emit(new Values(mapEntry.getKey(), mapEntry.getValue().size()));
+									RotatingTimeWindow.this.collector.emit(new Values(mapEntry.getKey(), mapEntry
+									    .getValue().size()));
 									// expire old timestamps
 									long timeLimit = System.currentTimeMillis() - timeWindow;
 									for(int i = 0; i < mapEntry.getValue().size(); i++) {
@@ -120,13 +126,14 @@ public class TrendingHashTagsTopology {
 
 		TridentTopology topology = new TridentTopology();
 
-		topology.newStream("spout", spout)
-				.each(new Fields("text", "date"), new Split(), new Fields("word"))
+		topology
+		    .newStream("spout", spout)
+		    .each(new Fields("text", "date"), new Split(), new Fields("word"))
 		    .each(new Fields("word", "date"), new HashTagFilter(), new Fields("hashtag"))
 		    .each(new Fields("hashtag", "date"), new ParseDate(), new Fields("timestamp"))
 		    .partitionBy(new Fields("hashtag"))
-		    .each(new Fields("hashtag", "timestamp"), new RotatingTimeWindow(5000), new Fields("key", "count"))
-		    .each(new Fields("key", "count"), new Utils.PrintFilter());
+		    .each(new Fields("hashtag", "timestamp"), new RotatingTimeWindow(5000),
+		        new Fields("key", "count")).each(new Fields("key", "count"), new Utils.PrintFilter());
 
 		return topology.build();
 	}

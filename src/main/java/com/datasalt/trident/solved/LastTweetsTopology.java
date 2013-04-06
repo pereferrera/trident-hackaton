@@ -21,26 +21,26 @@ import com.datasalt.trident.FakeTweetsBatchSpout;
 import com.datasalt.trident.Utils;
 
 /**
- * This is a simple example on how to partition a stream by some fields.
- * We partition by actor and save the last 5 tweets of the actor in a function.
+ * This is a simple example on how to partition a stream by some fields. We partition by actor and save the last 5
+ * tweets of the actor in a function.
  */
 public class LastTweetsTopology {
 
 	@SuppressWarnings("serial")
-  public static class LastTweets extends BaseFunction {
+	public static class LastTweets extends BaseFunction {
 
 		private Map<String, List<String>> lastTweets = new HashMap<String, List<String>>();
 		private int n;
-		
+
 		public LastTweets(int n) {
 			this.n = n;
 		}
 
 		@Override
-    public void execute(TridentTuple tuple, TridentCollector collector) {
+		public void execute(TridentTuple tuple, TridentCollector collector) {
 			String actor = (String) tuple.get(1);
 			String tweet = (String) tuple.get(0);
-			
+
 			List<String> prevlist = lastTweets.get(actor);
 			if(prevlist == null) {
 				prevlist = new LinkedList<String>();
@@ -51,22 +51,20 @@ public class LastTweetsTopology {
 				prevlist.remove(0);
 			}
 			collector.emit(new Values(prevlist));
-    }
+		}
 	}
-	
+
 	public static StormTopology buildTopology(LocalDRPC drpc) throws IOException {
 		FakeTweetsBatchSpout spout = new FakeTweetsBatchSpout();
 
 		TridentTopology topology = new TridentTopology();
-		topology.newStream("spout", spout)
-			.partitionBy(new Fields("actor"))
-			.each(new Fields("text", "actor"), new LastTweets(3), new Fields("last_tweets"))
-			.parallelismHint(5)
-			.each(new Fields("actor", "last_tweets"), new Utils.PrintFilter());
-			
+		topology.newStream("spout", spout).partitionBy(new Fields("actor"))
+		    .each(new Fields("text", "actor"), new LastTweets(3), new Fields("last_tweets"))
+		    .parallelismHint(5).each(new Fields("actor", "last_tweets"), new Utils.PrintFilter());
+
 		return topology.build();
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		LocalDRPC drpc = new LocalDRPC();
 		LocalCluster cluster = new LocalCluster();
