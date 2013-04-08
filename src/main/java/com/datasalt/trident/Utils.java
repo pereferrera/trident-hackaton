@@ -8,9 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.collections.MapUtils;
-
-import storm.trident.operation.Aggregator;
 import storm.trident.operation.BaseFunction;
 import storm.trident.operation.CombinerAggregator;
 import storm.trident.operation.Filter;
@@ -20,40 +17,6 @@ import storm.trident.tuple.TridentTuple;
 import backtype.storm.tuple.Values;
 
 public class Utils {
-
-	/**
-	 * An example Aggregator. Useful for saving (key, value) counts in a database.
-	 */
-	@SuppressWarnings({ "serial", "rawtypes", "unchecked" })
-	public static class KeyCountAggregator implements Aggregator {
-
-		@Override
-		public void prepare(Map conf, TridentOperationContext context) {
-		}
-
-		@Override
-		public void cleanup() {
-		}
-
-		@Override
-		public Object init(Object batchId, TridentCollector collector) {
-			Map<String, Object> map = new HashMap<String, Object>();
-			map.put("batchId", batchId);
-			return map;
-		}
-
-		@Override
-		public void aggregate(Object val, TridentTuple tuple, TridentCollector collector) {
-			String key = (String) tuple.get(0);
-			Map<String, Object> map = (Map<String, Object>) val;
-			map.put(key, MapUtils.getInteger(map, key, 0) + 1);
-		}
-
-		@Override
-		public void complete(Object val, TridentCollector collector) {
-			collector.emit(new Values(val));
-		}
-	}
 
 	/**
 	 * An example BaseFunction. It lowercases the String value in the specified Tuple position.
@@ -124,6 +87,10 @@ public class Utils {
 		return toReturn;
 	}
 	
+	/**
+	 * A Trident aggregator suitable for persisting a set of counts (String -> Integer).
+	 * For simplicity, it overrides old values with new values.
+	 */
 	@SuppressWarnings("serial")
   public static class CountAggregator implements CombinerAggregator<Map<String, Integer>> {
 
