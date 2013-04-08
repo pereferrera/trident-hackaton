@@ -12,6 +12,7 @@ import org.apache.commons.collections.MapUtils;
 
 import storm.trident.operation.Aggregator;
 import storm.trident.operation.BaseFunction;
+import storm.trident.operation.CombinerAggregator;
 import storm.trident.operation.Filter;
 import storm.trident.operation.TridentCollector;
 import storm.trident.operation.TridentOperationContext;
@@ -103,10 +104,10 @@ public class Utils {
 	}
 
 	/**
-	 * Given a hashmap with string keys and integer counts, returns the "top" entry set of it. "n" specifies the size of
+	 * Given a hashmap with string keys and integer counts, returns the "top" map of it. "n" specifies the size of
 	 * the top to return.
 	 */
-	public final static List<Map.Entry<String, Integer>> getTopNOfMap(Map<String, Integer> map, int n) {
+	public final static Map<String, Integer> getTopNOfMap(Map<String, Integer> map, int n) {
 		List<Map.Entry<String, Integer>> entryList = new ArrayList<Map.Entry<String, Integer>>(map.size());
 		entryList.addAll(map.entrySet());
 		Collections.sort(entryList, new Comparator<Map.Entry<String, Integer>>() {
@@ -116,6 +117,34 @@ public class Utils {
 				return arg1.getValue().compareTo(arg0.getValue());
 			}
 		});
-		return entryList.subList(0, Math.min(entryList.size(), n));
+		Map<String, Integer> toReturn = new HashMap<String, Integer>();
+		for(Map.Entry<String, Integer> entry: entryList.subList(0, Math.min(entryList.size(), n))) {
+			toReturn.put(entry.getKey(), entry.getValue());
+		}
+		return toReturn;
+	}
+	
+	@SuppressWarnings("serial")
+  public static class CountAggregator implements CombinerAggregator<Map<String, Integer>> {
+
+		@SuppressWarnings("unchecked")
+    @Override
+    public Map<String, Integer> init(TridentTuple tuple) {
+			Map<String, Integer> vals = zero();
+			vals.putAll((Map<String, Integer>) tuple.get(0));
+			return vals;
+		}
+
+		@Override
+    public Map<String, Integer> combine(Map<String, Integer> oldVal, Map<String, Integer> newVal) {
+			// easy: new values always override old ones
+			oldVal.putAll(newVal);
+	    return oldVal;
+    }
+
+		@Override
+    public Map<String, Integer> zero() {
+	    return new HashMap<String, Integer>(); 
+    }
 	}
 }

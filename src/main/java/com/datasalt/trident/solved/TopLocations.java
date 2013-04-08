@@ -2,15 +2,15 @@ package com.datasalt.trident.solved;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.commons.collections.MapUtils;
 
 import storm.trident.TridentTopology;
 import storm.trident.operation.BaseFunction;
 import storm.trident.operation.TridentCollector;
+import storm.trident.state.StateFactory;
+import storm.trident.testing.MemoryMapState;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
@@ -23,9 +23,8 @@ import com.datasalt.trident.FakeTweetsBatchSpout;
 import com.datasalt.trident.Utils;
 
 /**
- * An example of an scalable top of tops.
- * We partition by location and calculate the counts for each location. We emit the top locations so far.
- * Then we perform a global grouping to a single process and perform the top of tops.
+ * A running real-time count by location. Persisted using Trident state API. Counts are partitioned and each partition
+ * emits the Top N. The aggregated tops are then persisted uniquely.
  */
 public class TopLocations {
 
@@ -45,62 +44,27 @@ public class TopLocations {
 			// update counts
 			totalCounts.put(key, MapUtils.getInteger(totalCounts, key, 0) + 1);
 			// emit top n
+			System.err.println(Thread.currentThread().getName() + ", I have: " + totalCounts);
 			collector.emit(new Values(Utils.getTopNOfMap(totalCounts, n)));
-		}
-	}
-
-	@SuppressWarnings("serial")
-	public static class TopOfTops extends BaseFunction {
-
-		private Map<String, Integer> totalCounts = new HashMap<String, Integer>();
-		private int n;
-
-		public TopOfTops(int n) {
-			this.n = n;
-		}
-
-		private Thread t = null;
-
-		@Override
-		@SuppressWarnings("unchecked")
-		public void execute(TridentTuple tuple, TridentCollector collector) {
-			// set counts that come from previous phase
-			List<Map.Entry<String, Integer>> partialTop = (List<Entry<String, Integer>>) tuple.get(0);
-			for(Map.Entry<String, Integer> entry : partialTop) {
-				totalCounts.put(entry.getKey(), entry.getValue());
-			}
-
-			// this is how we need to do politeness for making things efficient:
-			if(t == null) {
-				final TridentCollector refCopy = collector;
-				t = new Thread() {
-					public void run() {
-						try {
-							while(true) {
-								// emit top n
-								refCopy.emit(new Values(Utils.getTopNOfMap(totalCounts, n)));
-								Thread.sleep(1000);
-							}
-						} catch(InterruptedException e) {
-							// bye bye!
-						}
-					};
-				};
-				t.start();
-			}
 		}
 	}
 
 	public static StormTopology buildTopology(LocalDRPC drpc) throws IOException {
 		FakeTweetsBatchSpout spout = new FakeTweetsBatchSpout(50);
 
+		StateFactory mapState = new MemoryMapState.Factory();
+
 		TridentTopology topology = new TridentTopology();
-		topology.newStream("spout", spout)
-				.partitionBy(new Fields("location"))
-		    .each(new Fields("location"), new TopNFunction(3), new Fields("tops")).parallelismHint(5)
+		topology
+		    .newStream("spout", spout)
+		    .partitionBy(new Fields("location"))
+		    .each(new Fields("location"), new TopNFunction(2), new Fields("tops"))
+		    .parallelismHint(3)
 		    .global()
-		    .each(new Fields("tops"), new TopOfTops(3), new Fields("top_of_tops"))
-		    .each(new Fields("top_of_tops"), new Utils.PrintFilter());
+		    .persistentAggregate(mapState, new Fields("tops"), new Utils.CountAggregator(),
+		        new Fields("aggregated_tops")).newValuesStream()
+		    .each(new Fields("aggregated_tops"), new Utils.PrintFilter())
+		    .parallelismHint(1);
 
 		return topology.build();
 	}
