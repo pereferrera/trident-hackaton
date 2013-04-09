@@ -6,7 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.Random;
 
-import org.testng.reporters.Files;
+import org.apache.commons.io.IOUtils;
 
 import storm.trident.operation.TridentCollector;
 import storm.trident.spout.IBatchSpout;
@@ -45,15 +45,16 @@ public class FakeTweetsBatchSpout implements IBatchSpout {
 		this.batchSize = batchSize;
 	}
 
-	@Override
+	@SuppressWarnings("unchecked")
+  @Override
 	public void open(Map conf, TopologyContext context) {
 		// init
 		System.err.println("Open Spout instance");
 		this.randomGenerator = new Random();
 		// read a resource with 500 sample english sentences
 		try {
-			sentences = Files.readFile(
-			    ClassLoader.getSystemClassLoader().getResourceAsStream("500_sentences_en.txt")).split("\n");
+			sentences = (String[]) IOUtils.readLines(
+			    ClassLoader.getSystemClassLoader().getResourceAsStream("500_sentences_en.txt")).toArray(new String[0]);
 		} catch(IOException e) {
 			throw new RuntimeException(e);
 		}
