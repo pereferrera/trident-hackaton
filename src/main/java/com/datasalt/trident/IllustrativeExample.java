@@ -108,8 +108,7 @@ public class IllustrativeExample {
 
 		// Each primitive allows us to apply either filters or functions to the stream
 		// We always have to select the input fields.
-		topology.newStream("filter", spout)
-				.each(new Fields("text", "actor"), new PereTweetsFilter())
+		topology.newStream("filter", spout).each(new Fields("text", "actor"), new PereTweetsFilter())
 		    .each(new Fields("text", "actor"), new Utils.PrintFilter());
 
 		// Functions describe their output fields, which are always appended to the input fields.
@@ -123,10 +122,8 @@ public class IllustrativeExample {
 		// Parallelism hint is applied downwards until a partitioning operation (we will see this later).
 		// This topology creates 5 spouts and 5 bolts:
 		// Let's debug that with TridentOperationContext . partitionIndex !
-		topology.newStream("parallel", spout)
-				.each(new Fields("text", "actor"), new PereTweetsFilter())
-		    .parallelismHint(5)
-		    .each(new Fields("text", "actor"), new Utils.PrintFilter());
+		topology.newStream("parallel", spout).each(new Fields("text", "actor"), new PereTweetsFilter())
+		    .parallelismHint(5).each(new Fields("text", "actor"), new Utils.PrintFilter());
 
 		// A stream can be partitioned in various ways.
 		// Let's partition it by "actor". What happens with previous example?
@@ -143,9 +140,7 @@ public class IllustrativeExample {
 
 		// But if we don't want to partition by any field, we can just use shuffle()
 		// We could also choose global() - with care!
-		topology.newStream("parallel_and_partitioned", spout)
-				.parallelismHint(1)
-				.shuffle()
+		topology.newStream("parallel_and_partitioned", spout).parallelismHint(1).shuffle()
 		    .each(new Fields("text", "actor"), new PereTweetsFilter()).parallelismHint(5)
 		    .each(new Fields("text", "actor"), new Utils.PrintFilter());
 
@@ -153,11 +148,9 @@ public class IllustrativeExample {
 		// The aggregate primitive aggregates one full batch. Useful if we want to persist the result of each batch only
 		// once.
 		// The aggregation for each batch is executed in a random partition as can be seen:
-		topology.newStream("aggregation", spout)
-				.parallelismHint(1)
+		topology.newStream("aggregation", spout).parallelismHint(1)
 		    .aggregate(new Fields("location"), new LocationAggregator(), new Fields("aggregated_result"))
-		    .parallelismHint(5)
-		    .each(new Fields("aggregated_result"), new Utils.PrintFilter());
+		    .parallelismHint(5).each(new Fields("aggregated_result"), new Utils.PrintFilter());
 
 		// The partitionAggregate on the other hand only executes the aggregator within one partition's part of the batch.
 		// Let's debug that with TridentOperationContext . partitionIndex !
@@ -175,9 +168,7 @@ public class IllustrativeExample {
 		// It splits the stream into groups so that aggregations only ocurr within a group.
 		// Because now we are grouping, the aggregation function can be much simpler (Count())
 		// We don't need to use HashMaps anymore.
-		topology.newStream("aggregation", spout)
-				.parallelismHint(1)
-				.groupBy(new Fields("location"))
+		topology.newStream("aggregation", spout).parallelismHint(1).groupBy(new Fields("location"))
 		    .aggregate(new Fields("location"), new Count(), new Fields("count")).parallelismHint(5)
 		    .each(new Fields("location", "count"), new Utils.PrintFilter());
 
