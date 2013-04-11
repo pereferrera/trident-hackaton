@@ -9,6 +9,11 @@ import backtype.storm.LocalDRPC;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 
+/**
+ * Use this skeleton for starting your own topology that uses the Fake tweets generator as data source.
+ * 
+ * @author pere
+ */
 public class Skeleton {
 
 	public static StormTopology buildTopology(LocalDRPC drpc) throws IOException {

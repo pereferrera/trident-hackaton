@@ -14,21 +14,32 @@ import storm.trident.operation.TridentCollector;
 import storm.trident.operation.TridentOperationContext;
 import storm.trident.operation.builtin.Count;
 import storm.trident.tuple.TridentTuple;
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
 import backtype.storm.LocalDRPC;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 
-public class IllustrativeExample {
+/**
+ * This class is not mean to be run, instead it is mean to be read. This is the guideline I followed for giving a
+ * hackaton at Berlin for the #4 Big Data Beers: http://www.meetup.com/Big-Data-Beers/events/112226662/
+ * <p>
+ * If you read through the code and the comments you will see how I explained different Trident concepts.
+ * <p>
+ * If you want to run some stream you'll need to comment out everything else. Otherwise the topology will run all the
+ * streams at the same time, which can be a bit of a chaos.
+ * 
+ * @author pere
+ */
+public class Demo {
 
-	@SuppressWarnings("serial")
+	/**
+	 * Dummy filter that just keeps tweets by "Pere"
+	 */
+	@SuppressWarnings({ "serial", "rawtypes" })
 	public static class PereTweetsFilter implements Filter {
 
 		int partitionIndex;
 
-		@SuppressWarnings("rawtypes")
 		@Override
 		public void prepare(Map conf, TridentOperationContext context) {
 			this.partitionIndex = context.getPartitionIndex();
@@ -43,13 +54,14 @@ public class IllustrativeExample {
 			boolean filter = tuple.getString(1).equals("pere");
 			if(filter) {
 				System.err.println("I am partition [" + partitionIndex + "] and I have filtered pere.");
-			} else {
-
 			}
 			return filter;
 		}
 	}
 
+	/**
+	 * Dummy function that just emits the uppercased tweet text.
+	 */
 	@SuppressWarnings("serial")
 	public static class UppercaseFunction extends BaseFunction {
 
@@ -59,6 +71,9 @@ public class IllustrativeExample {
 		}
 	}
 
+	/**
+	 * A simple Aggregator that produces a hashmap of key, counts.
+	 */
 	@SuppressWarnings("serial")
 	public static class LocationAggregator implements Aggregator<Map<String, Integer>> {
 
@@ -87,7 +102,6 @@ public class IllustrativeExample {
 
 		@Override
 		public void complete(Map<String, Integer> val, TridentCollector collector) {
-			// update whatever database with "val"
 			System.err.println("I am partition [" + partitionId + "] and have aggregated: [" + val + "]");
 			collector.emit(new Values(val));
 		}
@@ -180,11 +194,11 @@ public class IllustrativeExample {
 		return topology.build();
 	}
 
-	public static void main(String[] args) throws Exception {
-		Config conf = new Config();
-
-		LocalDRPC drpc = new LocalDRPC();
-		LocalCluster cluster = new LocalCluster();
-		cluster.submitTopology("hackaton", conf, buildTopology(drpc));
-	}
+//	public static void main(String[] args) throws Exception {
+//		Config conf = new Config();
+//
+//		LocalDRPC drpc = new LocalDRPC();
+//		LocalCluster cluster = new LocalCluster();
+//		cluster.submitTopology("hackaton", conf, buildTopology(drpc));
+//	}
 }

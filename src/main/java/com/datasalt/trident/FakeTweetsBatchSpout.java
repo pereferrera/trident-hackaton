@@ -17,7 +17,10 @@ import backtype.storm.tuple.Values;
 
 /**
  * A Spout that emits fake tweets. It calculates a random probability distribution for hashtags and actor activity. It
- * uses a dataset of 500 english sentences.
+ * uses a dataset of 500 english sentences. It has a fixed set of actors and subjects which you can also modify at your own will.
+ * Tweet text is one of the random 500 sentences followed by a hashtag of one subject.
+ * 
+ * @author pere
  */
 @SuppressWarnings({ "serial", "rawtypes" })
 public class FakeTweetsBatchSpout implements IBatchSpout {
