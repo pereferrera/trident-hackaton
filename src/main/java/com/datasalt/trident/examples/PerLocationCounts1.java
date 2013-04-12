@@ -7,9 +7,8 @@ import java.util.Map;
 import org.apache.commons.collections.MapUtils;
 
 import storm.trident.TridentTopology;
-import storm.trident.operation.Aggregator;
+import storm.trident.operation.BaseAggregator;
 import storm.trident.operation.TridentCollector;
-import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
@@ -34,15 +33,9 @@ import com.datasalt.trident.Utils;
  */
 public class PerLocationCounts1 {
 	
-	@SuppressWarnings({ "serial", "rawtypes" })
-  public static class LocationAggregator implements Aggregator<Map<String, Integer>> {
+	@SuppressWarnings({ "serial" })
+  public static class LocationAggregator extends BaseAggregator<Map<String, Integer>> {
 
-		@Override
-    public void prepare(Map conf, TridentOperationContext context) {
-    }
-		@Override
-    public void cleanup() {
-    }
 		@Override
     public Map<String, Integer> init(Object batchId, TridentCollector collector) {
 	    return new HashMap<String, Integer>();

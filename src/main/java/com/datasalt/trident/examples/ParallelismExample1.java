@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import storm.trident.TridentTopology;
-import storm.trident.operation.Filter;
+import storm.trident.operation.BaseFilter;
 import storm.trident.operation.TridentOperationContext;
 import storm.trident.tuple.TridentTuple;
 import backtype.storm.Config;
@@ -31,7 +31,7 @@ import com.datasalt.trident.Utils;
 public class ParallelismExample1 {
 
 	@SuppressWarnings("serial")
-	public static class PerActorTweetsFilter implements Filter {
+	public static class PerActorTweetsFilter extends BaseFilter {
 
 		private int partitionIndex;
 		private String actor;
@@ -44,10 +44,6 @@ public class ParallelismExample1 {
 		@Override
 		public void prepare(Map conf, TridentOperationContext context) {
 			this.partitionIndex = context.getPartitionIndex();
-		}
-
-		@Override
-		public void cleanup() {
 		}
 
 		@Override
@@ -65,7 +61,9 @@ public class ParallelismExample1 {
 		FakeTweetsBatchSpout spout = new FakeTweetsBatchSpout();
 
 		TridentTopology topology = new TridentTopology();
-		topology.newStream("spout", spout).parallelismHint(2).partitionBy(new Fields("actor"))
+		topology.newStream("spout", spout)
+				.parallelismHint(2)
+				.partitionBy(new Fields("actor"))
 		    // .shuffle()
 		    .each(new Fields("actor", "text"), new PerActorTweetsFilter("dave")).parallelismHint(5)
 		    .each(new Fields("actor", "text"), new Utils.PrintFilter());
